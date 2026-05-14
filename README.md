@@ -27,10 +27,6 @@ FLUX doesn’t just replace formulas – it **bridges the gap** between visual l
 - Build a pipeline → get the equivalent Excel formula instantly.  
 - Paste an Excel formula → FLUX draws the visual pipeline for you.
 
-> 🎯 **Built for SWE 4404 – Software Project Lab II**, 4th Semester, B.Sc. in Software Engineering.
-
----
-
 ## ✨ Key Features
 
 | Feature | Description |
