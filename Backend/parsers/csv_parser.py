@@ -23,6 +23,13 @@ def _infer_type(value: str) -> DataType:
         except ValueError:
             pass
     return DataType.STRING
+    """
+    Helper function: Takes a value as input and returns the inferred data type.
+    Checking if the value is a string, a data(in any popular format), a number
+    and returns the corresponding data type
+    It is a private function(not intended to be used outside the current module)
+    """
+
 
 
 def _coerce_value(value: str, dtype: DataType) -> Any:
@@ -37,11 +44,15 @@ def _coerce_value(value: str, dtype: DataType) -> Any:
     if dtype == DataType.DATE:
         return value.strip()
     return value
+    """
+    Another private helper function, takes a string value and desired datatype as input 
+    and converts it into the desired datatype if needed
+    """
 
 
 def parse_csv(csv_data: str) -> DataFrame:
     reader = csv.DictReader(io.StringIO(csv_data))
-    raw_rows: List[Dict[str, str]] = []
+    raw_rows: List[Dict[str, str]] = []#List of Dictionaries where each dictionary represents a row with column names as keys and cell values as values
     for row in reader:
         raw_rows.append(dict(row))
 
