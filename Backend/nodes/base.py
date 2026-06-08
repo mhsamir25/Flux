@@ -17,13 +17,17 @@ from models.data_schema import DataSchema
 class FieldSchema(BaseModel):
     """
     Describes a single config field for a node. Frontend uses this to render UI.
+    Describes what a config file should look like. For example: If a Filter Node needs to know
+    which column to filter and what value to look for, it uses FieldSchema to tell the frontend,
+    render a dropdown menu for columns and a text box for value
     """
     key: str                       # Name of the field (e.g., "column", "operator")
     label: str                     # Human-readable label (e.g., "Select Column")
     type: str                      # COLUMN_SELECT, MULTI_COLUMN_SELECT, TEXT, NUMBER, OPERATOR_SELECT, TOGGLE
-    placeholder: str = ""          
-    required: bool = True
-    options: List[str] = []
+    placeholder: str = ""          # The faint hint text that appears inside an empty field before the user starts typing
+    required: bool = True          # A flag stating wheather this input field is mandatory or optional
+    options: List[str] = []        # A list of predefined choices, this field is exclusively used when the 
+                                   # the type is set to something that requires a list of choices(like a dropdown menu)
 
 class NodePlugin(ABC):
 
@@ -49,7 +53,12 @@ class NodePlugin(ABC):
 
     @abstractmethod
     def infer_output_schema(self, input_schema: Optional[DataSchema], config: dict) -> DataSchema:
-        """Return output schema without execution. Raise if invalid."""
+        """
+        Return output schema without execution. Raise if invalid.
+        Predicts what the data will look like after running the node without processing the rows
+        For example: If a node removes a column, it calculates the new schema instantly so the 
+        frontend UI can update immediately. 
+        """
         ...
 
     def execute(self, input_df: DataFrame, config: dict) -> DataFrame:
