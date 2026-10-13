@@ -1,111 +1,296 @@
+@import "tailwindcss";
+
+/*
+ * Design tokens
+ * -------------
+ * Deliberately restrained: a neutral gray surface ramp, one accent (a muted Excel green),
+ * and soft semantic colors. Everything else in the app is built from these variables, so a
+ * single edit here re-skins the whole UI.
+ *
+ * Light theme mirrors Excel: gray chrome (#f3f2f1), white panels, #d0d0d0 gridline borders,
+ * #323130 text, #605e5c secondary text.
+ * Dark theme mirrors Excel's dark mode: mid-dark grays (never near-black), lighter borders,
+ * the same green accent lifted just enough to stay legible on gray.
+ */
 :root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+  /* surfaces */
+  --bg: #f3f2f1;
+  --panel: #ffffff;
+  --panel-alt: #faf9f8; /* header strips, table head, secondary blocks */
+  --panel-hover: #ecebea;
+  --panel-active: #e1dfdd;
+  --canvas: #f7f7f7; /* grid canvas behind the flow nodes */
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
+  /* lines */
+  --border: #d0cfce;
+  --border-light: #e3e1e0;
 
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
+  /* text */
+  --text: #323130;
+  --text-muted: #605e5c;
+
+  /* accent + status */
+  --accent: #217346;
+  --accent-hover: #1b5c38;
+  --accent-bg: rgba(33, 115, 70, 0.09);
+  --accent-text: #ffffff;
+  --success: #2f7d4f;
+  --error: #b3453a;
+  --warning: #9a6b1f;
+
+  /* shared geometry */
+  --radius: 3px;
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.08);
+  --shadow-2: 0 4px 12px rgba(0, 0, 0, 0.14);
+
+  /* Node category colors — shared between FluxNode, NodeSidebar, and the canvas MiniMap so a
+     category always reads as the same color everywhere in the app. Muted on purpose: these
+     are identification dots/strokes, not decoration. */
+  --cat-source: #4a7ab0;
+  --cat-transform: #4c8f63;
+  --cat-aggregate: #b07c33;
+  --cat-join: #7a6ea8;
+  --cat-output: #4b8a8a;
+
   color-scheme: light dark;
-  color: var(--text);
-  background: var(--bg);
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-
-  @media (max-width: 1024px) {
-    font-size: 16px;
-  }
+  font: 13px/1.45 "Segoe UI", Calibri, system-ui, -apple-system, sans-serif;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
-  }
+    --bg: #1f1f1f;
+    --panel: #2b2b2b;
+    --panel-alt: #323232;
+    --panel-hover: #3a3a3a;
+    --panel-active: #454545;
+    --canvas: #242424;
 
-  #social .button-icon {
-    filter: invert(1) brightness(2);
+    --border: #4a4a4a;
+    --border-light: #3d3d3d;
+
+    --text: #e6e6e6;
+    --text-muted: #a6a6a6;
+
+    --accent: #4c9a6c;
+    --accent-hover: #59ab7c;
+    --accent-bg: rgba(76, 154, 108, 0.16);
+    --accent-text: #ffffff;
+    --success: #6cb587;
+    --error: #d97a70;
+    --warning: #d3a95c;
+
+    --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.35);
+    --shadow-2: 0 4px 12px rgba(0, 0, 0, 0.45);
+
+    --cat-source: #6f9ed0;
+    --cat-transform: #6cb587;
+    --cat-aggregate: #d3a45c;
+    --cat-join: #a094cf;
+    --cat-output: #6bb0b0;
   }
+}
+
+* {
+  box-sizing: border-box;
 }
 
 body {
   margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
 }
 
 #root {
-  width: 1126px;
-  max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
   min-height: 100svh;
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
 }
 
-h1,
-h2 {
-  font-family: var(--heading);
-  font-weight: 500;
-  color: var(--text-h);
-}
+/* ------------------------------------------------------------------ *
+ * Shared UI primitives
+ * Small, flat, low-radius controls in the spirit of Excel's ribbon:
+ * one accent for the single primary action per view, everything else
+ * is a neutral outlined/ghost control.
+ * ------------------------------------------------------------------ */
 
-h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
-  @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
-  }
-}
-h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
-  margin: 0 0 8px;
-  @media (max-width: 1024px) {
-    font-size: 20px;
-  }
-}
-p {
-  margin: 0;
-}
-
-code,
-.counter {
-  font-family: var(--mono);
+.ui-btn {
   display: inline-flex;
-  border-radius: 4px;
-  color: var(--text-h);
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.6rem;
+  font-size: 12px;
+  line-height: 1.4;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.12s ease, border-color 0.12s ease, color 0.12s ease;
 }
 
-code {
-  font-size: 15px;
-  line-height: 135%;
-  padding: 4px 8px;
-  background: var(--code-bg);
+.ui-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Neutral outlined button — the default for secondary actions. */
+.ui-btn-default {
+  border-color: var(--border);
+  background: var(--panel);
+  color: var(--text);
+}
+.ui-btn-default:hover:not(:disabled) {
+  background: var(--panel-hover);
+}
+
+/* Text-only button — used for top bar / dense toolbars. */
+.ui-btn-ghost {
+  background: transparent;
+  color: var(--text-muted);
+}
+.ui-btn-ghost:hover:not(:disabled) {
+  background: var(--panel-hover);
+  color: var(--text);
+}
+
+/* The one filled action per view (Run, Sign in, Save). */
+.ui-btn-primary {
+  background: var(--accent);
+  color: var(--accent-text);
+  font-weight: 500;
+}
+.ui-btn-primary:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+.ui-btn-danger {
+  border-color: var(--border);
+  background: var(--panel);
+  color: var(--error);
+}
+.ui-btn-danger:hover:not(:disabled) {
+  background: var(--panel-hover);
+}
+
+input[type='checkbox'],
+input[type='radio'] {
+  accent-color: var(--accent);
+}
+
+.ui-input {
+  width: 100%;
+  padding: 0.25rem 0.5rem;
+  font-size: 12px;
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.ui-input:focus {
+  outline: 1px solid var(--accent);
+  outline-offset: -1px;
+  border-color: var(--accent);
+}
+.ui-input::placeholder {
+  color: var(--text-muted);
+}
+
+.ui-label {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* Small uppercase strip heading used at the top of every side panel. */
+.ui-panel-title {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.ui-divider {
+  width: 1px;
+  align-self: stretch;
+  margin: 0 0.25rem;
+  background: var(--border);
+}
+
+/* Flat modal surface shared by the auth and template dialogs. */
+.ui-modal {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--panel);
+  box-shadow: var(--shadow-2);
+}
+
+.ui-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.ui-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.05rem 0.4rem;
+  font-size: 11px;
+  border-radius: 999px;
+  background: var(--panel-alt);
+  border: 1px solid var(--border-light);
+  color: var(--text-muted);
+}
+
+/* Scrollbars: unobtrusive, matching the surface ramp. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+/*
+ * The canvas overview lives in the right-hand column, deliberately outside <ReactFlow> so it
+ * stops covering the bottom-right of the graph (nodes get parked there constantly).
+ *
+ * React Flow styles its minimap as `.react-flow__panel` — position: absolute, offset by
+ * `bottom right`. With no `.react-flow` ancestor left to position it against, that made it
+ * size to the nearest positioned ancestor (the whole app row) and paint over the sidebar and
+ * the config panel. Resetting it to normal flow lets it simply fill whatever box we give it.
+ */
+.flux-minimap .react-flow__minimap {
+  position: static;
+  inset: auto;
+  z-index: auto;
+  margin: 0;
+  display: block;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius);
+}
+
+/* React Flow ships hardcoded light-surface chrome for the zoom/fit controls; bring it onto
+   the same neutral ramp as everything else so it doesn't read as a foreign white slab on the
+   dark theme. */
+.react-flow__controls {
+  box-shadow: var(--shadow-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.react-flow__controls-button {
+  background: var(--panel);
+  border-bottom: 1px solid var(--border-light);
+  color: var(--text-muted);
+}
+.react-flow__controls-button:hover {
+  background: var(--panel-hover);
+  color: var(--text);
+}
+.react-flow__controls-button svg {
+  fill: currentColor;
 }
