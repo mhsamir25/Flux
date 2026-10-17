@@ -16,10 +16,12 @@
   /* surfaces */
   --bg: #f3f2f1;
   --panel: #ffffff;
-  --panel-alt: #faf9f8; /* header strips, table head, secondary blocks */
+  --panel-alt: #faf9f8;
+  /* header strips, table head, secondary blocks */
   --panel-hover: #ecebea;
   --panel-active: #e1dfdd;
-  --canvas: #f7f7f7; /* grid canvas behind the flow nodes */
+  --canvas: #f7f7f7;
+  /* grid canvas behind the flow nodes */
 
   /* lines */
   --border: #d0cfce;
@@ -138,6 +140,7 @@ body {
   background: var(--panel);
   color: var(--text);
 }
+
 .ui-btn-default:hover:not(:disabled) {
   background: var(--panel-hover);
 }
@@ -147,6 +150,7 @@ body {
   background: transparent;
   color: var(--text-muted);
 }
+
 .ui-btn-ghost:hover:not(:disabled) {
   background: var(--panel-hover);
   color: var(--text);
@@ -158,6 +162,7 @@ body {
   color: var(--accent-text);
   font-weight: 500;
 }
+
 .ui-btn-primary:hover:not(:disabled) {
   background: var(--accent-hover);
 }
@@ -167,6 +172,7 @@ body {
   background: var(--panel);
   color: var(--error);
 }
+
 .ui-btn-danger:hover:not(:disabled) {
   background: var(--panel-hover);
 }
@@ -185,11 +191,13 @@ input[type='radio'] {
   border: 1px solid var(--border);
   border-radius: var(--radius);
 }
+
 .ui-input:focus {
   outline: 1px solid var(--accent);
   outline-offset: -1px;
   border-color: var(--accent);
 }
+
 .ui-input::placeholder {
   color: var(--text-muted);
 }
@@ -282,15 +290,18 @@ input[type='radio'] {
   border-radius: var(--radius);
   overflow: hidden;
 }
+
 .react-flow__controls-button {
   background: var(--panel);
   border-bottom: 1px solid var(--border-light);
   color: var(--text-muted);
 }
+
 .react-flow__controls-button:hover {
   background: var(--panel-hover);
   color: var(--text);
 }
+
 .react-flow__controls-button svg {
   fill: currentColor;
 }
