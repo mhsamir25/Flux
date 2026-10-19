@@ -1,3 +1,9 @@
+"""NodePlugin contract — the interface every one of the 17 node types implements.
+Getting this right makes the frontend, the DAG executor, and the formula engine schema-driven
+with near-zero per-node special-casing: the frontend renders config panels purely from
+get_config_schema(), and the executor/formula engine call execute()/to_excel_formula() without
+knowing anything node-specific.
+"""
 from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Optional
@@ -47,6 +53,7 @@ class NodePlugin(ABC):
     input_ports: int = 1       # 0 for source nodes, 2 for join
     output_ports: int = 1
 
+
     formula_exportable: bool = True
 
     @abstractmethod
@@ -74,6 +81,13 @@ class NodePlugin(ABC):
     def requires_reparse(self, config: dict) -> bool:
         """Whether this source node's config asks for something the cached parse can't give.
 
+        Source data reaches a pipeline as an already-parsed FluxDataFrame from the
+        data_reference_id cache (§11), but for some sources the *config* decides part of what
+        gets parsed — read_xlsx's sheet_name picks which sheet to read, and that choice can
+        only be honoured by parsing the original bytes again. This hook is how a source node
+        says "my config needs the raw upload, not the cached frame", so the executor can
+        re-parse instead of silently returning a frame parsed with different settings.
+
         Default False: a source whose output is fully determined by its config needs no
         re-parse, and every source whose data came inline (raw CSV text) is unaffected.
         """
@@ -90,4 +104,12 @@ class NodePlugin(ABC):
     def compute_row_errors(
         self, input_df: FluxDataFrame, output_df: FluxDataFrame, config: dict
     ) -> Optional[list[int]]:
+        """Optional hook (added in Phase 6, not part of the original §5 spec): row indices
+        that individually failed within an otherwise *successful* execution — e.g.
+        convert_type's coerce-to-null behavior — for NodeResult.error_row_indices row-level
+        UI highlighting (§7.1) without the whole node being marked as failed. The executor
+        calls this generically on every single-input node after a successful execute(), so
+        adding row-level reporting to a new node later never requires touching the executor.
+        Default: no row-level errors to report.
+        """
         return None

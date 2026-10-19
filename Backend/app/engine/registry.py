@@ -1,6 +1,4 @@
-"""NodeRegistry (PLAN.md §5.1) — explicit, in-memory registration of every NodePlugin.
-
-GET /api/nodes serializes registry.all() into NodeCatalogueEntry objects; this is the single
+"""""GET /api/nodes serializes registry.all() into NodeCatalogueEntry objects; this is the single
 endpoint the frontend sidebar and config panel are built against, so the registry is the
 source of truth for "which node types exist" at runtime.
 """
@@ -43,10 +41,9 @@ class NodeRegistry:
 
 def build_registry() -> NodeRegistry:
     """Explicit registration list, called once on app startup (main.py lifespan).
-
     Prefer this over decorator-based auto-discovery for a fixed, small set of 17 node
     types — it's more readable and avoids import-order surprises. Node plugins are added
-    here one by one as they're implemented 
+    here one by one as they're implemented.
     """
     registry = NodeRegistry()
     registry.register(ReadCsvNode())
@@ -75,12 +72,12 @@ _registry_singleton: "NodeRegistry | None" = None
 
 def get_registry() -> NodeRegistry:
     """FastAPI dependency: a lazily-built, process-wide shared NodeRegistry.
-
     A plain lazy singleton rather than routing everything through app.state — the registry is
     pure/stateless once built (no per-request mutation), so there's nothing app.state's request-
     scoped lifecycle actually buys here, and Depends(get_registry) is simpler to use/override
     in tests than threading `request: Request` through every route that needs it. main.py's
-    lifespan still calls this once at startup it just also happens to be
+    lifespan still calls this once at startup (Phase 3's original intent: fail fast on a
+    registration error at boot, not on a route's first request) — it just also happens to be
     the same object every route dependency gets afterward.
     """
     global _registry_singleton
