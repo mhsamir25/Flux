@@ -111,10 +111,6 @@ def test_build_registry_includes_output_nodes():
 
 
 def test_build_registry_has_every_node_plugin_from_the_plan():
-    # PLAN.md §5 says "17 NodePlugin classes" / "Implement all 17," but its own §6 bullet
-    # list enumerates 18 distinct node ids (2 source + 9 transform + 2 aggregate + 1 join +
-    # 4 output) — a miscount in the plan itself, not something to silently "round down" here.
-    # This asserts against every id actually specified in §6.
     registry = build_registry()
     ids = {plugin.id for plugin in registry.all()}
     every_node_in_the_plan = {
