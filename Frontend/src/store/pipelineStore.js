@@ -30,19 +30,50 @@ const usePipelineStore = create((set, get) => ({
   formulaResult: null,
   setFormulaResult: (result) => set({ formulaResult: result }),
 
-  // Auth state
   accessToken: null,
   username: null,
-  setAuth: (token, username) => set({ accessToken: token, username }),
-  clearAuth: () => set({ accessToken: null, username: null }),
+  setAuth: (token, username) => {
+    try { localStorage.setItem('flux_access_token', token) } catch {}
+    set({ accessToken: token, username })
+  },
+  clearAuth: () => {
+    try { localStorage.removeItem('flux_access_token') } catch {}
+    set({ accessToken: null, username: null })
+  },
+
+  showAuthModal: false,
+  setShowAuthModal: (v) => set({ showAuthModal: v }),
+
+
+  pendingAction: null,
+  setPendingAction: (v) => set({ pendingAction: v }),
+
+  currentTemplateId: null,
+  setCurrentTemplateId: (id) => set({ currentTemplateId: id }),
 
   // Preview panel: which node to show preview for
   previewNodeId: null,
   setPreviewNode: (id) => set({ previewNodeId: id }),
 
+ 
+  sidebarCollapsed: false,
+  toggleSidebar: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
+
+  
+  configPanelCollapsed: false,
+  toggleConfigPanel: () => set((s) => ({ configPanelCollapsed: !s.configPanelCollapsed })),
+
+
+  previewHeight: 192,
+  setPreviewHeight: (height) => set({ previewHeight: height }),
+
   // Execution running state
   isExecuting: false,
   setExecuting: (v) => set({ isExecuting: v }),
+
+  
+  executionError: null,
+  setExecutionError: (v) => set({ executionError: v }),
 
   // Replay Mode State
   replayNodes: [], // Topologically sorted node IDs
@@ -97,7 +128,7 @@ const usePipelineStore = create((set, get) => ({
     )
   }),
 
-  // Add a node from the sidebar drag
+
   addNode: (type, displayName, position) => {
     const newNode = {
       id: crypto.randomUUID(),
@@ -106,10 +137,14 @@ const usePipelineStore = create((set, get) => ({
       data: { nodeType: type, displayName, config: {} },
     }
     set({ nodes: [...get().nodes, newNode] })
+    return newNode.id
   },
 
-  // Reset canvas
-  resetCanvas: () => set({ nodes: [], edges: [], nodeResults: {}, selectedNodeId: null, previewNodeId: null, formulaResult: null }),
+  
+  resetCanvas: () => set({
+    nodes: [], edges: [], nodeResults: {}, selectedNodeId: null, previewNodeId: null,
+    formulaResult: null, currentTemplateId: null, csvData: null, csvFileName: null,
+  }),
 
   // Load pipeline from template
   loadPipeline: (nodes, edges) => set({ nodes, edges, nodeResults: {}, selectedNodeId: null }),
