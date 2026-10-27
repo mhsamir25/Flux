@@ -1,9 +1,3 @@
-"""NodeCatalogueEntry  — what GET /api/nodes serializes registry.all() into.
-FieldSchema/NodeCategory are NOT redefined here despite the plan listing "FieldSchema,
-NodeCatalogueEntry" together for schemas/node.py — Phase 2 already defined FieldSchema
-directly in app/nodes/base.py (tightly coupled with NodePlugin.get_config_schema()'s return
-type), so this module imports and reuses it rather than duplicating it under a second name.
-"""
 from pydantic import BaseModel
 
 from app.nodes.base import FieldSchema, NodeCategory
@@ -15,5 +9,8 @@ class NodeCatalogueEntry(BaseModel):
     category: NodeCategory
     config_schema: list[FieldSchema]
     formula_exportable: bool
+    # Added for the frontend (Phase 11): the canvas needs to know how many input handles to
+    # draw per node type (0 for sources, 2 for join, 1 otherwise) without hardcoding per-node
+    # logic — consistent with §5.1's "the frontend never hardcodes per-node UI."
     input_ports: int
     output_ports: int

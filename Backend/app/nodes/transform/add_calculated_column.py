@@ -14,6 +14,8 @@ class ExpressionSyntaxError(ValueError):
     """Raised on malformed add_calculated_column expressions."""
 
 
+# --- AST ---------------------------------------------------------------------
+
 @dataclass
 class _Num:
     value: float
@@ -49,6 +51,8 @@ _COMPARISON_OPS = {"=", "≠", ">", "<", "≥", "≤", "<>", ">=", "<="}
 _COMPARISON_ALIASES = {"<>": "≠", ">=": "≥", "<=": "≤"}
 _EXCEL_OP_ALIASES = {"≠": "<>", "≥": ">=", "≤": "<="}
 
+# --- Tokenizer -----------------------------------------------------------------
+
 _TOKEN_SPEC = [
     ("NUMBER", r"\d+(?:\.\d+)?"),
     ("STRING", r'"[^"]*"|\'[^\']*\''),
@@ -80,6 +84,8 @@ def _tokenize(text: str) -> list[tuple[str, str]]:
     return tokens
 
 
+# --- Parser ----------------------------------------------------------------
+
 class _Parser:
     def __init__(self, tokens: list[tuple[str, str]]):
         self._tokens = tokens
@@ -106,7 +112,7 @@ class _Parser:
 
     def _comparison(self) -> AstNode:
         # Comparisons are one level, not chainable (a<b<c isn't supported, matching Excel),
-        # and available anywhere an expression is both standalone 
+        # and available anywhere an expression is — both standalone (e.g. a boolean flag
         # column, "price > 10") and inside IF's condition clause.
         node = self._additive()
         if self._peek()[0] == "COMP":
@@ -168,6 +174,8 @@ def parse_expression(text: str) -> AstNode:
         raise ExpressionSyntaxError("Expression is empty.")
     return _Parser(_tokenize(text)).parse()
 
+
+# --- Evaluation ----------------------------------------------------------------
 
 def evaluate_expression(node: AstNode, df: pd.DataFrame):
     if isinstance(node, _Num):
@@ -262,6 +270,8 @@ def _to_excel(node: AstNode) -> str:
         return f"({_to_excel(node.left)}{op}{_to_excel(node.right)})"
     raise ExpressionSyntaxError("Cannot render this expression as an Excel formula.")
 
+
+# --- Node --------------------------------------------------------------------
 
 class AddCalculatedColumnNode(NodePlugin):
     id = "add_calculated_column"

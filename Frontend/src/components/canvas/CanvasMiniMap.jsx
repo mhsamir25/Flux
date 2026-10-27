@@ -11,7 +11,25 @@ const CATEGORY_COLOR = {
   OUTPUT: 'var(--cat-output)',
 }
 
+// The canvas overview, rendered in the right-hand column under the configuration panel
+// instead of floating over the canvas.
+//
+// It was an overlay before, which meant it permanently covered whatever was parked in the
+// bottom-right corner of the graph — nodes get dragged there constantly, so it was sitting on
+// top of real work. React Flow's MiniMap works anywhere inside ReactFlowProvider (it reads
+// the same internal store the canvas writes to), so nothing about it needed to be inside the
+// <ReactFlow> element. See the .flux-minimap rule in index.css for the positioning reset.
 
+// MiniMap's own source computes its viewBox like this:
+//
+//   const elementWidth  = style?.width  ?? 200
+//   const scaledWidth   = boundingRect.width / elementWidth
+//   const viewScale     = Math.max(scaledWidth, scaledHeight)
+//   const x             = boundingRect.x - (viewScale * elementWidth - boundingRect.width) / 2 - offset
+//
+// So style.width/style.height must be NUMBERS. Passing '100%' makes that division NaN and the
+// whole viewBox — and therefore every node in the overview — collapses to nothing. That means
+// the size has to be measured, not expressed as a percentage.
 const FALLBACK_SIZE = { width: 200, height: 150 }
 
 export default function CanvasMiniMap() {
@@ -19,7 +37,10 @@ export default function CanvasMiniMap() {
   const boxRef = useRef(null)
   const [size, setSize] = useState(FALLBACK_SIZE)
 
-
+  // Measure the box we're given and hand MiniMap the resulting pixel numbers. A
+  // ResizeObserver rather than a one-shot read, so the overview stays correct when the
+  // column is resized or the root font size differs from the 16px default (every width in
+  // this app is rem-based, so that is not a hypothetical).
   useEffect(() => {
     const element = boxRef.current
     if (!element) return undefined

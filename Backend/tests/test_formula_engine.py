@@ -14,6 +14,8 @@ def _edge(source, target, port=None):
     return EdgeDefinition(source_node_id=source, target_node_id=target, target_port=port)
 
 
+# --- forward: simple chains --------------------------------------------------------
+
 def test_generate_filter_then_sort(engine):
     nodes = [
         NodeDefinition(id="n1", type="read_csv", config={}),
@@ -52,6 +54,7 @@ def test_generate_compatibility_for_non_dynamic_formula(engine):
     assert result.compatibility == "Compatible with Excel 2016 and later"
 
 
+# --- forward: chain-breaking nodes ---------------------------------------------------
 
 def test_generate_pivot_breaks_chain(engine):
     nodes = [
@@ -93,6 +96,7 @@ def test_generate_chart_terminal_always_none_with_explanation(engine):
     assert "visual outputs" in result.explanation
 
 
+# --- forward: add_calculated_column special-casing -----------------------------------
 
 def test_generate_calculated_column_as_terminal_shows_own_expression(engine):
     nodes = [
@@ -119,6 +123,7 @@ def test_generate_calculated_column_not_terminal_passes_parent_through(engine):
     assert "total" in result.explanation  # its own step is still described
 
 
+# --- forward: join special-casing --------------------------------------------------
 
 def test_generate_join_as_terminal(engine):
     nodes = [
@@ -157,6 +162,7 @@ def test_generate_join_not_terminal_composes_downstream(engine):
     assert "No Excel formula equivalent for row limiting" in result.explanation
 
 
+# --- reverse: individual patterns ---------------------------------------------------
 
 def test_parse_filter(engine):
     result = engine.parse("=FILTER(Sheet1!A1:Z1000, [age]>30)")
@@ -254,6 +260,7 @@ def test_parse_sumifs_multi_criteria_rejected(engine):
     assert "single-criteria" in result.message
 
 
+# --- reverse: error paths -------------------------------------------------------------
 
 def test_parse_unsupported_function_returns_parse_error(engine):
     result = engine.parse("=WEIRDFUNC(1, 2, 3)")

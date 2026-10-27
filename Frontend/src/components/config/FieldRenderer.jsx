@@ -20,7 +20,10 @@ const RENDERERS = {
   EXPRESSION: ExpressionField,
 }
 
-
+// rename_column's `mappings` and group_by_aggregate's `aggregations` are structurally lists
+// of small objects, not flat values — the backend declares them with a nominal FieldType
+// (TEXT) since FieldType has no LIST variant (PLAN.md §13), so they're special-cased by
+// field key here rather than routed through the generic type-based dispatch below.
 const STRUCTURAL_RENDERERS = {
   mappings: MappingsField,
   aggregations: AggregationsField,

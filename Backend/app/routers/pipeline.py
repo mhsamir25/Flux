@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth.dependencies import current_user_optional
 from app.auth.models import User
 from app.csv_io.parser import write_csv
+from app.csv_io.xlsx_io import write_xlsx
 from app.data_cache import data_reference_cache
 from app.db import get_session
 from app.engine.executor import DAGExecutor, ExportError, build_graph, kahn_topological_sort
@@ -21,6 +22,9 @@ router = APIRouter(prefix="/api/pipeline", tags=["pipeline"])
 
 
 def get_executor(registry: NodeRegistry = Depends(get_registry)) -> DAGExecutor:
+    # resolve_raw is what lets a read_xlsx node honour its own sheet_name: the cache keeps the
+    # original upload bytes so the executor can re-parse the requested sheet instead of
+    # returning whichever sheet the upload happened to parse.
     return DAGExecutor(
         registry,
         resolve_reference=data_reference_cache.get,
@@ -42,7 +46,20 @@ async def execute_pipeline(
     return result
 
 
+@router.post("/preview", response_model=ExecutionResult)
+async def preview_pipeline_page(
+    payload: PipelineRequest,
+    executor: DAGExecutor = Depends(get_executor),
+) -> ExecutionResult:
+    """Returns a paginated 100-row slice (via payload.preview_offset and payload.target_node_id)
+    without writing an ExecutionLog entry on every page turn."""
+    return executor.execute(payload)
+
+
 async def _log_execution(session: AsyncSession, template_id, result: ExecutionResult) -> None:
+    """Best-effort: ExecutionLog is explicitly optional for core functionality (§10) — a
+    logging failure (e.g. template_id pointing at a template that no longer exists, or the DB
+    being briefly unavailable) must never fail the pipeline execution response itself."""
     status, error_summary = _summarize_execution(result)
     try:
         session.add(ExecutionLog(
@@ -110,13 +127,26 @@ async def validate_edge(
 
 
 @router.post("/export")
-async def export_pipeline_csv(
+async def export_pipeline_data(
     payload: PipelineRequest, executor: DAGExecutor = Depends(get_executor)
 ) -> Response:
+    """Exports a node's COMPLETE output as a real CSV or XLSX file — PLAN.md §14: "fetch full
+    row set via a dedicated export call, not just the 100-row preview." `target_node_id` names
+    which node's output to export (reusing the field execute() already uses for partial-execution,
+    since the meaning — "run the pipeline up to and including this node" — is identical here).
+    """
     try:
         flux_df = executor.execute_for_export(payload)
     except ExportError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
+
+    if payload.export_format == "xlsx":
+        xlsx_bytes = write_xlsx(flux_df.df)
+        return Response(
+            content=xlsx_bytes,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f'attachment; filename="{payload.target_node_id}.xlsx"'},
+        )
 
     csv_text = write_csv(flux_df.df)
     return Response(

@@ -29,7 +29,8 @@ def detect_encoding(raw: bytes) -> str:
     best = from_bytes(raw).best()
     if best is not None and best.encoding:
         return best.encoding
-    return "latin-1"  
+    return "latin-1"  # never raises on decode; last resort so upload doesn't hard-fail
+
 
 def sniff_delimiter(sample: str) -> str:
     try:
@@ -46,7 +47,7 @@ def parse_csv(data: Union[str, bytes], max_rows: int = MAX_ROWS) -> FluxDataFram
     else:
         text = data
 
-    text = text.lstrip("﻿") 
+    text = text.lstrip("﻿")  # strip a BOM if one survived decoding
 
     if text.strip() == "":
         return FluxDataFrame(schema=DataSchema(columns=[]), df=pd.DataFrame(), total_row_count=0)

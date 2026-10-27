@@ -2,7 +2,9 @@ import { useRef } from 'react'
 
 import usePipelineStore from '../../store/pipelineStore'
 
-
+// Save is visible always, guest or not (PLAN.md §12) — App.jsx's onSave prop decides whether
+// clicking it saves immediately or opens the auth modal first. Pipeline JSON export/import is
+// pure client-side file I/O (§14) — works identically for guests, no backend call at all.
 export default function TopBar({ onShowTemplates, onShowAuth, onSave }) {
   const username = usePipelineStore((s) => s.username)
   const clearAuth = usePipelineStore((s) => s.clearAuth)
@@ -15,6 +17,8 @@ export default function TopBar({ onShowTemplates, onShowAuth, onSave }) {
   const nodeResults = usePipelineStore((s) => s.nodeResults)
   const replayNodes = usePipelineStore((s) => s.replayNodes)
   const startReplay = usePipelineStore((s) => s.startReplay)
+  const currentTemplateName = usePipelineStore((s) => s.currentTemplateName)
+  const setCurrentTemplate = usePipelineStore((s) => s.setCurrentTemplate)
   const importInputRef = useRef(null)
 
   const hasResults = Object.keys(nodeResults).length > 0
@@ -60,6 +64,20 @@ export default function TopBar({ onShowTemplates, onShowAuth, onSave }) {
           Flux
         </span>
         <span className="text-xs text-[var(--text-muted)]">no-code pipeline builder</span>
+        {currentTemplateName && (
+          <div className="flex items-center gap-1 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--panel-alt)] px-2 py-0.5 text-xs text-[var(--text-muted)]">
+            <span>Template:</span>
+            <span className="font-medium text-[var(--text)]">{currentTemplateName}</span>
+            <button
+              type="button"
+              onClick={() => setCurrentTemplate(null, null)}
+              title="Detach template (save as new pipeline)"
+              className="ml-1 text-[var(--text-muted)] hover:text-[var(--error)]"
+            >
+              ×
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="flex items-center gap-2">

@@ -1,7 +1,3 @@
-"""GET /api/nodes 
-The single endpoint the frontend sidebar and config panel are built against — the frontend
-never hardcodes per-node UI
-"""
 from fastapi import APIRouter, Depends
 
 from app.engine.registry import NodeRegistry, get_registry

@@ -43,7 +43,9 @@ class ConvertTypeNode(NodePlugin):
     def execute(self, input_df: FluxDataFrame, config: dict) -> FluxDataFrame:
         column = config.get("column")
         target_type = config.get("target_type")
-
+        # Validate the config (and the column's existence) before converting anything, so a
+        # bad target type or a missing column is a clear config error rather than a KeyError
+        # or an unsupported-type ValueError from deep inside the conversion.
         self.infer_output_schema(input_df.schema, config)
         df = input_df.df.copy()
         series = df[column]

@@ -47,6 +47,7 @@ class ReadXlsxNode(NodePlugin):
 
     def requires_reparse(self, config: dict) -> bool:
         """A sheet_name can only be honoured by re-parsing the workbook from its raw bytes.
+
         Without this, the executor hands back the frame parsed at upload time — which was
         parsed from whichever sheet the upload defaulted to — and the node's sheet_name is
         silently ignored.

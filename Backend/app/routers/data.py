@@ -1,4 +1,3 @@
-"""POST /api/data/upload: public"""
 from typing import Optional
 
 from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile

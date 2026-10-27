@@ -3,7 +3,9 @@ import { useState } from 'react'
 import executionApi from '../../api/executionApi'
 import usePipelineStore from '../../store/pipelineStore'
 
-
+// Backend returns bare NodeDefinition/EdgeDefinition — no canvas positions, no display names
+// (just the plugin id) — since a formula has no concept of layout. Lays them out in a simple
+// left-to-right row and looks up each node's real display name from the catalogue.
 function parsedPipelineToFlow(parsed, nodeCatalogue) {
   const spacing = 220
   const nodes = parsed.nodes.map((n, i) => {
@@ -42,7 +44,9 @@ export default function FormulaPanel() {
 
   const handleCopy = async () => {
     if (!formulaResult?.formula) return
-  
+    // Clipboard writes can be denied by the browser (unfocused page, missing permission,
+    // insecure context) — always a possibility, not just a headless-testing artifact — so
+    // this must not be an unhandled rejection.
     try {
       await navigator.clipboard.writeText(formulaResult.formula)
       setCopied(true)

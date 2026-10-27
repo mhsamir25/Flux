@@ -22,7 +22,18 @@ import {
   isEmptyChartData,
 } from '../../utils/chartData'
 
-
+// Renders one of the three OUTPUT chart nodes from its config + its upstream preview data.
+//
+// The backend deliberately does no chart work — bar_chart/line_chart/pie_chart are pure
+// pass-throughs (PLAN.md §6: "chart rendering happens entirely in the frontend (Recharts)
+// using the node's config plus the upstream preview data"). That means everything the chart
+// needs is already in hand: the node's x_column/y_column/title/color from the config panel,
+// and preview_data from the last execute call. Nothing here calls the API.
+//
+// The chart type comes from the node's own `type`, never from a config field, so a user can't
+// end up with a pie chart's config driving a bar chart. All the fiddly data prep (numeric
+// coercion, null handling, pie aggregation) lives in utils/chartData.js so it can be tested
+// without a DOM — see chartData.test.js.
 export default function ChartPreview({ nodeType, config, rows }) {
   const spec = getChartSpec(nodeType, config, rows)
 
@@ -51,7 +62,10 @@ export default function ChartPreview({ nodeType, config, rows }) {
   }
 
   return (
-  
+    // min-h-[200px] rather than min-h-0: ResponsiveContainer measures its parent and renders
+    // nothing at all when that measurement is 0, and `min-h-0` explicitly permits a flex
+    // child to collapse to zero. A floor of 200px means the chart always has room, and in the
+    // app (a 256px-tall slot) the floor is never the binding constraint.
     <div className="flex h-full w-full flex-col">
       {spec.title && (
         <p className="shrink-0 px-3 pt-2 text-xs font-medium text-[var(--text)]">{spec.title}</p>

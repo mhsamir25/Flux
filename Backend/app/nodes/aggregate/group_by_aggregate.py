@@ -1,3 +1,17 @@
+"""AGGREGATE node: group_by_aggregate 
+
+`config["aggregations"]` is a list of {"column": ..., "function": ...} dicts — structurally a
+list, same convention as rename_column's `mappings` (§13: frontend renders a dedicated
+sub-form for it). AGGREGATE_FUNCTIONS / PANDAS_FUNC_MAP are exported so pivot.py can reuse the
+same aggregation-function vocabulary rather than duplicating it — pivot_table's aggfunc needs
+the identical SUM/AVERAGE/COUNT/MIN/MAX/COUNT_DISTINCT set.
+
+Excel export only renders the *first* aggregation's formula (same documented limitation as
+sort's multi-key case) — a grouped table with several aggregation columns doesn't collapse
+into one Excel formula, since each output column would need its own SUMIF/AVERAGEIF/etc.
+COUNT_DISTINCT has no single-formula Excel equivalent at all (would need a SUMPRODUCT/COUNTIF
+trick), so it's skipped even as the "first aggregation" case.
+"""
 from typing import Optional
 
 from app.dataframe.frame import FluxDataFrame
@@ -5,11 +19,6 @@ from app.dataframe.schema import Column, DataSchema, DataType
 from app.nodes.base import FieldSchema, FieldType, NodeCategory, NodePlugin, SchemaValidationError
 
 AGGREGATE_FUNCTIONS = ["SUM", "AVERAGE", "COUNT", "MIN", "MAX", "COUNT_DISTINCT"]
-# COUNT deliberately maps to pandas' "size" (rows in the group), NOT "count" (non-null values
-# in that column). "count" silently skips nulls, so a 3-row group with one null reported 1 —
-# while this node's own Excel export is COUNTIF, which counts rows. The chart on the canvas and
-# the generated spreadsheet formula were disagreeing about the same pipeline. COUNT is
-# "how many rows are in this group"; COUNT_DISTINCT already covers "how many different values".
 PANDAS_FUNC_MAP = {
     "SUM": "sum", "AVERAGE": "mean", "COUNT": "size",
     "MIN": "min", "MAX": "max", "COUNT_DISTINCT": "nunique",
@@ -30,7 +39,9 @@ class GroupByAggregateNode(NodePlugin):
 
     def infer_output_schema(self, input_schema: DataSchema, config: dict) -> DataSchema:
         group_column = config.get("group_column")
-        if not group_column or not input_schema.has_column(group_column):
+        if not group_column:
+            raise SchemaValidationError("Group By Aggregate requires a group column.")
+        if not input_schema.has_column(group_column):
             raise SchemaValidationError(f"Column '{group_column}' not found in the input data.")
         aggregations = config.get("aggregations") or []
         if not aggregations:
@@ -40,7 +51,9 @@ class GroupByAggregateNode(NodePlugin):
         seen_names = {group_column}
         for agg in aggregations:
             col, func = agg.get("column"), agg.get("function")
-            if not col or not input_schema.has_column(col):
+            if not col:
+                raise SchemaValidationError("Each aggregation requires a column to aggregate.")
+            if not input_schema.has_column(col):
                 raise SchemaValidationError(f"Column '{col}' not found in the input data.")
             if func not in AGGREGATE_FUNCTIONS:
                 raise SchemaValidationError(f"Unsupported aggregation function '{func}'.")

@@ -20,8 +20,6 @@ class FilterNode(NodePlugin):
             FieldSchema(key="column", label="Column", type=FieldType.COLUMN_SELECT),
             FieldSchema(key="operator", label="Operator", type=FieldType.ENUM, options=_OPERATORS),
             FieldSchema(key="value", label="Value", type=FieldType.TEXT, required=False),
-            FieldSchema(key="logic", label="Combine With", type=FieldType.TOGGLE,
-                        options=["AND", "OR"], required=False),
         ]
 
     def infer_output_schema(self, input_schema: DataSchema, config: dict) -> DataSchema:

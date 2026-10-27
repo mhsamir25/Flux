@@ -2,7 +2,10 @@ import { useEffect, useRef, useState } from 'react'
 
 import usePipelineStore from '../../store/pipelineStore'
 
-
+// Floating filmstrip shown while a replay walk is active (PLAN.md §14/Build Order item 22:
+// "walk the topological execution order visually, highlighting each node in sequence with its
+// row-count badge"). Purely frontend — reads the already-computed replayNodes/nodeResults, no
+// new backend call.
 export default function ReplayControls() {
   const replayNodes = usePipelineStore((s) => s.replayNodes)
   const replayIndex = usePipelineStore((s) => s.replayIndex)
@@ -21,7 +24,9 @@ export default function ReplayControls() {
   const atStart = replayIndex <= 0
   const atEnd = replayIndex >= replayNodes.length - 1
 
-
+  // Auto-advance one step at a time on a timer while playing; stops itself at the last step
+  // rather than looping back to the start — replay walks a finite, already-computed execution
+  // order, not a live simulation that would make sense to repeat automatically.
   useEffect(() => {
     if (!playing) return undefined
     if (atEnd) { setPlaying(false); return undefined }

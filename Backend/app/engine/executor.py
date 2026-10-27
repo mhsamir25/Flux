@@ -1,3 +1,8 @@
+"""DAGExecutor — Kahn's-algorithm topological execution.
+
+Class named 'DAGExecutor'  project-structure comment ("executor.py # DAGExecutor,
+Kahn's algorithm, error handling");
+"""
 from collections import deque
 from typing import Any, Callable, Optional
 
@@ -13,6 +18,9 @@ ResolveRaw = Callable[[str], Optional[bytes]]
 
 
 class ExportError(Exception):
+    """Raised by execute_for_export() when the requested node has no full data to export
+    (never ran, failed, or wasn't specified) — always caught by the router and turned into a
+    400, never surfaced as a raw exception."""
 
 
 class DAGExecutor:
@@ -27,7 +35,10 @@ class DAGExecutor:
         return ExecutionResult(node_results=node_results)
 
     def execute_for_export(self, request: PipelineRequest) -> FluxDataFrame:
-
+        """Returns the FULL (not preview(100)-truncated) FluxDataFrame for
+        request.target_node_id — used by POST /api/pipeline/export. Runs the exact same graph
+        logic as execute(); the only difference is what gets returned to the caller.
+        """
         if not request.target_node_id:
             raise ExportError("target_node_id is required to know which node's output to export.")
         node_results, node_outputs = self._run(request)
@@ -110,10 +121,15 @@ class DAGExecutor:
                     output = plugin.execute(parent_output, config)
                     error_row_indices = plugin.compute_row_errors(parent_output, output, config)
 
+                row_offset = (
+                    request.preview_offset
+                    if (request.target_node_id is None or node_id == request.target_node_id)
+                    else 0
+                )
                 node_outputs[node_id] = output
                 node_results[node_id] = NodeResult(
                     success=True,
-                    preview_data=output.preview(100).to_json_records(),
+                    preview_data=output.preview(100, offset=row_offset).to_json_records(),
                     total_row_count=output.total_row_count,
                     output_schema=output.schema,
                     error_row_indices=error_row_indices,
@@ -137,6 +153,7 @@ class DAGExecutor:
         config = node_def.config or {}
         resolved = _resolve_source_data(node_def, request, self.resolve_reference)
         reference_id = config.get("data_reference_id") or request.data_reference_id
+
         if (
             resolved is not None and resolved[0] == "parsed"
             and reference_id and plugin.requires_reparse(config) and self.resolve_raw is not None
@@ -157,6 +174,9 @@ class DAGExecutor:
 
 
 def build_graph(node_ids: list[str], edges) -> tuple[dict, dict, dict, dict]:
+    """Package-shared (not module-private) as of Phase 10: reused by
+    routers/pipeline.py's POST /api/pipeline/validate-edge to simulate adding a proposed edge
+    and re-run cycle detection, without duplicating this logic."""
     node_id_set = set(node_ids)
     in_degree = {n: 0 for n in node_ids}
     children: dict[str, list[str]] = {n: [] for n in node_ids}

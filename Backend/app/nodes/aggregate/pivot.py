@@ -44,12 +44,6 @@ class PivotNode(NodePlugin):
             raise ValueError("Pivot requires a row column, column column, and value column.")
         if pandas_func is None:
             raise ValueError(f"Unsupported aggregation function '{function}'.")
-
-        # dropna=False on BOTH axes: pivot_table defaults to dropping rows/columns whose key is
-        # null, which silently deleted data — a row with a blank category vanished from the
-        # output with no error and no warning, and a blank category became a missing column.
-        # group_by_aggregate already passes dropna=False for exactly this reason, and the two
-        # aggregate nodes must agree on whether a null key is data or noise. It is data.
         pivoted = input_df.df.pivot_table(
             index=row_column, columns=column_column, values=value_column, aggfunc=pandas_func,
             dropna=False,

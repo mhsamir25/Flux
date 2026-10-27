@@ -15,7 +15,7 @@ from app.csv_io.xlsx_io import list_sheet_names, parse_xlsx, write_xlsx
 from app.dataframe.schema import DataType
 
 
-#CSV Parsing part
+# --- CSV parsing --------------------------------------------------------------
 
 def test_parse_csv_basic():
     csv = "name,age,score\nAlice,30,95.5\nBob,25,87.3"
@@ -99,6 +99,7 @@ def test_parse_csv_boolean_inference():
     assert list(fdf.df["flag"]) == [True, False, True, False]
 
 
+# --- CSV export sanitization ----------------------------------------------------
 
 def test_sanitize_cell_for_export_prefixes_formula_chars():
     assert sanitize_cell_for_export("=SUM(A1)") == "'=SUM(A1)"
@@ -120,7 +121,7 @@ def test_write_csv_sanitizes_injection_payload():
     assert "-5" in csv_text  # numeric column untouched
 
 
-# XLSX Parsing part
+# --- XLSX parsing --------------------------------------------------------------
 
 def _make_xlsx(rows: list[list], sheet_name: str = "Sheet1") -> bytes:
     wb = openpyxl.Workbook()
@@ -201,6 +202,8 @@ def test_parse_xlsx_invalid_bytes_raises():
     with pytest.raises(FileParsingError):
         parse_xlsx(b"not a real xlsx file")
 
+
+# --- XLSX export sanitization ---------------------------------------------------
 
 def test_write_xlsx_sanitizes_injection_payload():
     df = pd.DataFrame({"note": ["=cmd|'/c calc'!A1", "safe"], "amount": [-5, 10]})

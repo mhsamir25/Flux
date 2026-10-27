@@ -1,3 +1,14 @@
+"""JOIN-stage tests: the one node with two inputs.
+
+Join is structurally different from every other node — two input ports, a config key per
+side, and the only node the executor dispatches through execute_join() — so it is exactly
+the kind of node that works in isolation and fails on the canvas. These tests build real
+two-source pipelines (two uploads, two references) and check the four join types, the
+column-merging rules, and the failure modes.
+
+The fixtures give row counts that distinguish every join type from every other:
+left has keys 1,2,3 and right has keys 1,2,4, so INNER=2, LEFT=3, RIGHT=3, FULL=4.
+"""
 import pytest
 
 from app.nodes.base import SchemaValidationError

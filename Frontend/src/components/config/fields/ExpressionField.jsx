@@ -1,4 +1,8 @@
-
+// PLAN.md §5 describes EXPRESSION as "structured operand/operator/operand," but the actual
+// backend (add_calculated_column, Phase 5b) parses config["expression"] as a plain string
+// through its own recursive-descent parser (e.g. "price * quantity", 'IF(price > 100, price
+// * 0.9, price)') — not a structured object. A text input matching that real contract, not
+// the plan's more abstract description, is what actually round-trips to a working pipeline.
 export default function ExpressionField({ field, value, onChange, columns }) {
   return (
     <div>

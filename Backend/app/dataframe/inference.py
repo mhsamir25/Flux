@@ -1,5 +1,9 @@
-"""
+"""Type inference for CSV/XLSX cells
+
 Inference order is fixed: numeric, then date, then boolean literal, else string.
+Note this means a "1"/"0" boolean column is classified NUMBER, not BOOLEAN, since
+the numeric check runs first — boolean inference effectively only catches
+true/false/yes/no spellings. This is the plan's documented tradeoff, not a bug.
 """
 from datetime import datetime
 from typing import Iterable

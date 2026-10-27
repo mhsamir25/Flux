@@ -1,9 +1,3 @@
-"""NodePlugin contract — the interface every one of the 17 node types implements.
-Getting this right makes the frontend, the DAG executor, and the formula engine schema-driven
-with near-zero per-node special-casing: the frontend renders config panels purely from
-get_config_schema(), and the executor/formula engine call execute()/to_excel_formula() without
-knowing anything node-specific.
-"""
 from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Optional
@@ -53,7 +47,15 @@ class NodePlugin(ABC):
     input_ports: int = 1       # 0 for source nodes, 2 for join
     output_ports: int = 1
 
-
+    # Added in Phase 10 for GET /api/nodes' NodeCatalogueEntry.formula_exportable (§8.1).
+    # The plan suggests computing this dynamically as "to_excel_formula(None, {}) is not
+    # None", but that check gives wrong answers for real nodes: data_table's to_excel_formula
+    # is an identity passthrough of input_ref, so calling it with input_ref=None returns None
+    # even though data_table never itself breaks a formula chain; add_calculated_column
+    # returns None for an empty/unconfigured expression even though it's normally exportable
+    # once configured. A fixed per-node-TYPE declaration sidesteps both false negatives —
+    # override to False only on nodes that structurally NEVER have an Excel equivalent
+    # regardless of config (pivot, rename_column, limit_rows, the three chart nodes).
     formula_exportable: bool = True
 
     @abstractmethod

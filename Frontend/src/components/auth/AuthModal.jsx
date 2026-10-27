@@ -4,7 +4,8 @@ import useAuth from '../../hooks/useAuth'
 
 const inputClass = 'ui-input'
 
-
+// onSuccess fires after a real login/register completes — App.jsx uses it to chain into
+// "finish the save the guest was trying to do" (PLAN.md §12's guest->account upgrade path).
 export default function AuthModal({ onClose, onSuccess }) {
   const { login, register } = useAuth()
   const [mode, setMode] = useState('login') // 'login' | 'register'

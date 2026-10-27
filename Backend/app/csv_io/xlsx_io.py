@@ -1,3 +1,4 @@
+"""XLSX parsing + writing via openpyxl"""
 import io
 from typing import Optional
 
@@ -52,7 +53,7 @@ def parse_xlsx(data: bytes, sheet_name: Optional[str] = None, max_rows: int = MA
     data_rows = []
     for row in rows_iter:
         if row == (None,) * len(row):
-            continue  
+            continue  # skip fully-blank trailing rows openpyxl sometimes yields
         data_rows.append([_stringify_cell(v) for v in row])
         if len(data_rows) > max_rows:
             raise FileParsingError(

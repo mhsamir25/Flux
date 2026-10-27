@@ -1,4 +1,8 @@
-
+// Unit tests for utils/chartData.js — the pure data prep behind ChartPreview.
+//
+// Run from the Frontend directory:  node --test src/utils/
+// No test framework needed: node:test and node:assert/strict ship with Node, and
+// package.json is already "type": "module", so these are plain ESM.
 import test from 'node:test'
 import assert from 'node:assert/strict'
 
@@ -20,7 +24,7 @@ const ROWS = [
   { subject: null, score_average: 77 },
 ]
 
-
+// --- which nodes are charts ---------------------------------------------------------
 
 test('only the three chart node types are chart nodes', () => {
   assert.equal(isChartNode('bar_chart'), true)
@@ -29,7 +33,8 @@ test('only the three chart node types are chart nodes', () => {
 })
 
 test('every other node type is explicitly not a chart', () => {
- 
+  // The list mirrors the backend's OUTPUT category (PLAN.md §6) — a data_table is an output
+  // node but renders as a table, not a chart.
   for (const type of ['data_table', 'read_csv', 'filter', 'group_by_aggregate', 'join', 'pivot']) {
     assert.equal(isChartNode(type), false, `${type} should not be a chart`)
     assert.equal(getChartKind(type), null)
@@ -138,7 +143,7 @@ test('empty and missing inputs do not throw', () => {
 // --- pie aggregation -------------------------------------------------------------------
 
 test('duplicate labels are summed for a pie', () => {
- 
+  // Two identical slices with the same name are unreadable; a pie wants one slice per label.
   const rows = [
     { region: 'North', revenue: 10 },
     { region: 'South', revenue: 30 },

@@ -1,7 +1,4 @@
-"""
-FluxDataFrame: the internal data representation every node plugin operates on and returns.
-"""
-
+"""FluxDataFrame: the internal data representation every node plugin operates on and returns."""
 import json
 from dataclasses import dataclass
 
@@ -16,11 +13,11 @@ class FluxDataFrame:
     df: pd.DataFrame
     total_row_count: int
 
-    def preview(self, max_rows: int = 100) -> "FluxDataFrame":
-        """Returns a copy with only the first max_rows rows; total_row_count unchanged."""
+    def preview(self, max_rows: int = 100, offset: int = 0) -> "FluxDataFrame":
+        """Returns a copy with at most max_rows rows starting at offset; total_row_count unchanged."""
         return FluxDataFrame(
             schema=self.schema,
-            df=self.df.head(max_rows).reset_index(drop=True),
+            df=self.df.iloc[offset : offset + max_rows].reset_index(drop=True),
             total_row_count=self.total_row_count,
         )
 

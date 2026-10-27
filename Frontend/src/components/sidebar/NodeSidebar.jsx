@@ -1,6 +1,16 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
+import executionApi from '../../api/executionApi'
 import usePipelineStore from '../../store/pipelineStore'
+
+const SOURCE_FILE_SPEC = {
+  read_csv: { ext: 'csv', accept: '.csv,text/csv', label: 'Read CSV' },
+  read_xlsx: {
+    ext: 'xlsx',
+    accept: '.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    label: 'Read XLSX',
+  },
+}
 
 const CATEGORY_COLOR = {
   SOURCE: 'var(--cat-source)',
@@ -19,7 +29,11 @@ const CATEGORY_LABEL = {
   OUTPUT: 'Output',
 }
 
-
+// Which sections are folded, persisted per browser. A palette of 18 nodes across 5 sections
+// is mostly whitespace once you're working — the section you need is usually one of them —
+// and re-folding the same four sections on every reload is exactly the friction collapsing
+// them is meant to remove. Read defensively: a corrupt/hand-edited value just means "all
+// sections open" rather than a blank sidebar.
 const SECTIONS_KEY = 'flux_sidebar_sections'
 
 function readCollapsedSections() {
@@ -32,13 +46,73 @@ function readCollapsedSections() {
   }
 }
 
-
+// Renders the palette by grouping GET /api/nodes' response by category (PLAN.md §13) — never
+// a hardcoded node list. Dragging an item onto the canvas creates a node via
+// ReactFlowCanvas.jsx's onDrop, which reads these exact dataTransfer keys.
+//
+// Two levels of collapse: the whole sidebar folds to a narrow rail of category dots (so the
+// canvas gets the width back while the palette is still one click away), and each category
+// section folds independently.
 export default function NodeSidebar() {
   const nodeCatalogue = usePipelineStore((s) => s.nodeCatalogue)
   const collapsed = usePipelineStore((s) => s.sidebarCollapsed)
   const toggleSidebar = usePipelineStore((s) => s.toggleSidebar)
+  const nodes = usePipelineStore((s) => s.nodes)
+  const selectedNodeId = usePipelineStore((s) => s.selectedNodeId)
+  const addNode = usePipelineStore((s) => s.addNode)
+  const updateNodeConfig = usePipelineStore((s) => s.updateNodeConfig)
 
   const [collapsedSections, setCollapsedSections] = useState(readCollapsedSections)
+  const [uploadStatus, setUploadStatus] = useState(null) // { kind: 'loading' | 'success' | 'error', message }
+  const fileInputRefs = useRef({})
+
+  const handleSourceFile = async (nodeId, file) => {
+    const spec = SOURCE_FILE_SPEC[nodeId]
+    if (!spec || !file) return
+
+    const ext = file.name.split('.').pop()?.toLowerCase()
+    if (ext !== spec.ext) {
+      setUploadStatus({
+        kind: 'error',
+        message: `Only .${spec.ext} files are allowed for ${spec.label}.`,
+      })
+      return
+    }
+
+    setUploadStatus({ kind: 'loading', message: `Uploading ${file.name}…` })
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      const res = await executionApi.post('/api/data/upload', formData)
+      const { data_reference_id, row_count } = res.data
+
+      const selectedSameType = nodes.find(
+        (n) => n.id === selectedNodeId && n.data.nodeType === nodeId
+      )
+      const unconfiguredExisting = nodes.find(
+        (n) => n.data.nodeType === nodeId && !n.data.config?.data_reference_id
+      )
+      const existingTarget = selectedSameType || unconfiguredExisting
+      const existingSourceCount = nodes.filter(
+        (n) => n.data.nodeType === 'read_csv' || n.data.nodeType === 'read_xlsx'
+      ).length
+
+      const targetNodeId =
+        existingTarget?.id ??
+        addNode(nodeId, spec.label, { x: 80, y: 150 + existingSourceCount * 110 })
+
+      updateNodeConfig(targetNodeId, { data_reference_id })
+      setUploadStatus({
+        kind: 'success',
+        message: `${file.name} — ${row_count.toLocaleString()} rows`,
+      })
+    } catch (err) {
+      setUploadStatus({
+        kind: 'error',
+        message: err.response?.data?.detail || 'Upload failed.',
+      })
+    }
+  }
 
   useEffect(() => {
     try {
@@ -162,18 +236,66 @@ export default function NodeSidebar() {
 
               {!isFolded && (
                 <div className="flex flex-col gap-1">
-                  {nodes.map((node) => (
-                    <div
-                      key={node.id}
-                      draggable
-                      onDragStart={(e) => onDragStart(e, node)}
-                      title={node.formula_exportable ? undefined : 'No Excel formula equivalent'}
-                      className="cursor-grab select-none rounded-[var(--radius)] border border-[var(--border)] bg-[var(--panel)] px-2.5 py-1.5 text-[13px] text-[var(--text)] transition-colors hover:bg-[var(--panel-hover)] active:cursor-grabbing"
-                      style={{ borderLeft: `3px solid ${CATEGORY_COLOR[category]}` }}
+                  {nodes.map((node) => {
+                    const sourceSpec = SOURCE_FILE_SPEC[node.id]
+                    if (sourceSpec) {
+                      const isUploading = uploadStatus?.kind === 'loading'
+                      return (
+                        <div key={node.id}>
+                          <input
+                            ref={(el) => {
+                              fileInputRefs.current[node.id] = el
+                            }}
+                            type="file"
+                            accept={sourceSpec.accept}
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0]
+                              e.target.value = ''
+                              if (file) handleSourceFile(node.id, file)
+                            }}
+                          />
+                          <button
+                            type="button"
+                            disabled={isUploading}
+                            onClick={() => fileInputRefs.current[node.id]?.click()}
+                            title={`Import a .${sourceSpec.ext} file from your computer`}
+                            className="flex w-full cursor-pointer select-none items-center justify-between rounded-[var(--radius)] border border-[var(--border)] bg-[var(--panel)] px-2.5 py-1.5 text-left text-[13px] text-[var(--text)] transition-colors hover:bg-[var(--panel-hover)] disabled:cursor-not-allowed disabled:opacity-60"
+                            style={{ borderLeft: `3px solid ${CATEGORY_COLOR[category]}` }}
+                          >
+                            <span>{node.display_name}</span>
+                            <span className="text-[10px] text-[var(--text-muted)]">.{sourceSpec.ext}</span>
+                          </button>
+                        </div>
+                      )
+                    }
+
+                    return (
+                      <div
+                        key={node.id}
+                        draggable
+                        onDragStart={(e) => onDragStart(e, node)}
+                        title={node.formula_exportable ? undefined : 'No Excel formula equivalent'}
+                        className="cursor-grab select-none rounded-[var(--radius)] border border-[var(--border)] bg-[var(--panel)] px-2.5 py-1.5 text-[13px] text-[var(--text)] transition-colors hover:bg-[var(--panel-hover)] active:cursor-grabbing"
+                        style={{ borderLeft: `3px solid ${CATEGORY_COLOR[category]}` }}
+                      >
+                        {node.display_name}
+                      </div>
+                    )
+                  })}
+                  {category === 'SOURCE' && uploadStatus && (
+                    <p
+                      className={`mt-0.5 px-1 text-[11px] ${
+                        uploadStatus.kind === 'error'
+                          ? 'text-[var(--error)]'
+                          : uploadStatus.kind === 'success'
+                            ? 'text-[var(--success)]'
+                            : 'text-[var(--text-muted)]'
+                      }`}
                     >
-                      {node.display_name}
-                    </div>
-                  ))}
+                      {uploadStatus.message}
+                    </p>
+                  )}
                 </div>
               )}
             </div>

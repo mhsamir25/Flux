@@ -1,0 +1,17 @@
+fastapi
+uvicorn[standard]
+sqlalchemy>=2.0
+asyncpg
+alembic
+fastapi-users[sqlalchemy]
+pydantic>=2
+pydantic-settings
+pandas
+openpyxl
+charset-normalizer      # encoding detection fallback for csv_io/parser.py (PLAN.md §11)
+python-multipart
+slowapi
+pytest
+pytest-asyncio
+httpx
+aiosqlite               # async SQLite driver, test-only: exercises auth/ against a real in-memory DB

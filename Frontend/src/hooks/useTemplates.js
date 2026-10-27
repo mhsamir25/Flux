@@ -2,7 +2,10 @@ import { useCallback, useState } from 'react'
 
 import executionApi from '../api/executionApi'
 
-
+// Auth-aware only in the sense that every call here 401s for a guest (current_active_user on
+// the backend, §16) — the interceptor already surfaces the auth modal on that; the guest-
+// prompt UI itself lives in TemplateBrowser, which checks useAuth().isGuest before ever
+// calling list().
 export default function useTemplates() {
   const [templates, setTemplates] = useState([])
   const [loading, setLoading] = useState(false)

@@ -1,6 +1,7 @@
-
+// group_by_aggregate's config["aggregations"] is a list of {column, function} dicts — same
+// structurally-a-list situation as rename_column's mappings (PLAN.md §13), same treatment.
 const FUNCTIONS = ['SUM', 'AVERAGE', 'COUNT', 'MIN', 'MAX', 'COUNT_DISTINCT']
-const rowInput = 'ui-input flex-1'
+const rowInput = 'ui-input min-w-0 flex-1'
 
 export default function AggregationsField({ value, onChange, columns }) {
   const aggregations = Array.isArray(value) ? value : []
@@ -21,14 +22,14 @@ export default function AggregationsField({ value, onChange, columns }) {
               </option>
             ))}
           </select>
-          <select value={a.function || 'SUM'} onChange={(e) => update(idx, 'function', e.target.value)} className="ui-input w-28">
+          <select value={a.function || 'SUM'} onChange={(e) => update(idx, 'function', e.target.value)} className="ui-input w-24 shrink-0">
             {FUNCTIONS.map((f) => (
               <option key={f} value={f}>
                 {f}
               </option>
             ))}
           </select>
-          <button type="button" onClick={() => remove(idx)} className="text-[var(--text-muted)] hover:text-[var(--error)]">
+          <button type="button" onClick={() => remove(idx)} className="shrink-0 px-1 text-[var(--text-muted)] hover:text-[var(--error)]">
             ×
           </button>
         </div>

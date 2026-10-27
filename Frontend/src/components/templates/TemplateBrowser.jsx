@@ -4,12 +4,14 @@ import useAuth from '../../hooks/useAuth'
 import useTemplates from '../../hooks/useTemplates'
 import usePipelineStore from '../../store/pipelineStore'
 
-
+// Guests get an explicit sign-in prompt, never a silently-empty list (PLAN.md §12: "it does
+// not silently fail or show an empty list with no explanation").
 export default function TemplateBrowser({ onClose, onRequestAuth }) {
   const { isGuest } = useAuth()
   const { templates, loading, error, list, remove } = useTemplates()
   const loadPipeline = usePipelineStore((s) => s.loadPipeline)
-  const setCurrentTemplateId = usePipelineStore((s) => s.setCurrentTemplateId)
+  const setCurrentTemplate = usePipelineStore((s) => s.setCurrentTemplate)
+  const currentTemplateId = usePipelineStore((s) => s.currentTemplateId)
 
   useEffect(() => {
     if (!isGuest) list()
@@ -19,7 +21,7 @@ export default function TemplateBrowser({ onClose, onRequestAuth }) {
   const handleLoad = (template) => {
     const { nodes, edges } = template.pipeline_json || {}
     loadPipeline(nodes || [], edges || [])
-    setCurrentTemplateId(template.id)
+    setCurrentTemplate(template.id, template.name)
     onClose()
   }
 
@@ -27,6 +29,9 @@ export default function TemplateBrowser({ onClose, onRequestAuth }) {
     e.stopPropagation()
     if (!window.confirm('Delete this template? This cannot be undone.')) return
     await remove(id)
+    if (currentTemplateId === id) {
+      setCurrentTemplate(null, null)
+    }
   }
 
   return (

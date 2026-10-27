@@ -1,4 +1,7 @@
-
+// rename_column's config["mappings"] is a list of {from, to} pairs — structurally a list, not
+// a flat field, so it's declared with a nominal FieldType (TEXT) on the backend and rendered
+// with this dedicated sub-form instead (PLAN.md §13).
+const rowInput = 'ui-input min-w-0 flex-1'
 
 export default function MappingsField({ value, onChange, columns }) {
   const mappings = Array.isArray(value) ? value : []

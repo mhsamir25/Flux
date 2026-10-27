@@ -2,7 +2,18 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 import usePipelineStore from '../../store/pipelineStore'
 
-
+// The preview panel is the second-biggest thing on screen after the canvas, and how much of
+// it you want depends entirely on what you're doing: a sliver while you rearrange the
+// graph, most of the window while you're reading a result table or looking at a chart. So its
+// height is dragged rather than fixed.
+//
+// This handle lives between the canvas and the panel and is the only thing that writes
+// previewHeight. Two snap points at the ends of the travel:
+//   - dragged to the top    -> the panel takes the whole column ("whole page"), the canvas
+//     shrinks to a sliver. A sliver, not zero: the handle has to stay reachable to drag back.
+//   - dragged to the bottom -> the panel collapses to its header strip, giving the canvas
+//     everything back.
+// Anything in between is free, which is the point.
 
 const MIN_HEIGHT = 44        // just the "Preview / N rows / Export" header
 const SNAP = 16              // how close to an end counts as "snapped" to it
@@ -24,7 +35,12 @@ export default function PreviewResizeHandle({ containerRef }) {
   const previewHeight = usePipelineStore((s) => s.previewHeight)
   const setPreviewHeight = usePipelineStore((s) => s.setPreviewHeight)
 
- 
+  // The column's own height is the ceiling — the panel can't grow past the space the canvas
+  // and the upload zone leave it. It's tracked two ways on purpose:
+  //   - maxHeightRef, read only inside event handlers, so a window resize *during* a drag is
+  //     picked up immediately and the panel can't be dragged past the bottom of the screen;
+  //   - maxHeightForAria, state, purely so aria-valuemax is accurate. Reading a ref during
+  //     render is not allowed (and the React Compiler lint rule rightly rejects it).
   const maxHeightRef = useRef(0)
   const [maxHeightForAria, setMaxHeightForAria] = useState(0)
 
@@ -64,14 +80,18 @@ export default function PreviewResizeHandle({ containerRef }) {
     }
   }
 
- 
+  // Restore a remembered size once on mount, and only if it still fits — a height saved on a
+  // tall screen would otherwise open as an over-tall panel on a short one. In an effect, not
+  // during render: writing to the store while rendering is how you get an update loop.
   useEffect(() => {
     const restored = readStoredHeight()
     if (restored === null) return
     measure()
     const max = maxHeightRef.current
     if (restored <= max) setPreviewHeight(restored)
- 
+    // Mount-only by design: the stored value is a starting point, not something that should
+    // fight the user after they've dragged.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const startDrag = (event) => {
@@ -83,7 +103,8 @@ export default function PreviewResizeHandle({ containerRef }) {
     const onUp = () => {
       window.removeEventListener('pointermove', onMove)
       window.removeEventListener('pointerup', onUp)
-    
+      // Restore the cursor and text selection — without this the whole UI stays in
+      // row-resize/unselectable after a drag that ends outside the handle.
       document.body.style.cursor = ''
       document.body.style.userSelect = ''
     }

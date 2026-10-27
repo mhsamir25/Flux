@@ -10,7 +10,9 @@ const CATEGORY_COLOR = {
   OUTPUT: 'var(--cat-output)',
 }
 
-
+// One node component for every category (PLAN.md §13: "schema-driven design means most nodes
+// differ only in label/icon/color") — input_ports/output_ports and category come entirely
+// from the node catalogue (GET /api/nodes), never hardcoded per node type here.
 export default function FluxNode({ id, data, selected }) {
   const nodeCatalogue = usePipelineStore((s) => s.nodeCatalogue)
   const nodeResults = usePipelineStore((s) => s.nodeResults)
@@ -26,7 +28,10 @@ export default function FluxNode({ id, data, selected }) {
 
   const status = result ? (result.skipped ? 'skipped' : result.success ? 'success' : 'error') : null
 
-
+  // Replay walks replayNodes (the topological execution order, computed once by
+  // startReplay()) one step at a time. A node absent from that order (e.g. disconnected from
+  // the rest of the graph) is treated as "not yet reached" rather than "already visited" —
+  // there's no step at which it would have been highlighted.
   const isReplaying = replayNodes.length > 0
   const replayPos = replayNodes.indexOf(id)
   const isReplayCurrent = isReplaying && replayPos === replayIndex
@@ -34,14 +39,14 @@ export default function FluxNode({ id, data, selected }) {
 
   const ringClass = isReplayCurrent
     ? 'outline outline-2 outline-[var(--accent)]'
-    : status === 'error'
-      ? 'outline outline-2 outline-[var(--error)]'
-      : status === 'success'
-        ? 'outline outline-1 outline-[var(--success)]'
-        : status === 'skipped'
-          ? 'opacity-60'
-          : selected
-            ? 'outline outline-2 outline-[var(--accent)]'
+    : selected
+      ? 'outline outline-2 outline-[var(--accent)] ring-2 ring-[var(--accent)]/30'
+      : status === 'error'
+        ? 'outline outline-2 outline-[var(--error)]'
+        : status === 'success'
+          ? 'outline outline-1 outline-[var(--success)]'
+          : status === 'skipped'
+            ? 'opacity-60'
             : ''
 
   return (

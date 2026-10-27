@@ -1,3 +1,16 @@
+// Chart data preparation — pure functions, no React and no Recharts imports.
+//
+// Split out from ChartPreview.jsx so the fiddly part (deciding whether a node is chartable,
+// coercing preview_data's loosely-typed cells into plottable points) is unit-testable on its
+// own. See chartData.test.js, run with `node --test` from the Frontend directory.
+//
+// Why this needs care at all: preview_data is JSON decoded by axios, so every cell arrives as
+// a string, a number, or null, with no type information — the schema says a column is NUMBER
+// but a null in it comes through as null, not as a typed empty. Recharts silently drops or
+// mis-renders non-numeric Y values, so numeric coercion happens here, once, and anything that
+// genuinely can't be plotted is turned into a null the chart can gap over rather than a NaN
+// that corrupts the domain.
+
 export const CHART_NODE_TYPES = {
   bar_chart: 'bar',
   line_chart: 'line',
@@ -12,13 +25,19 @@ export function isChartNode(nodeType) {
   return getChartKind(nodeType) !== null
 }
 
-
+// A palette for pie slices and for multi-series cases. The node's own `color` config is a
+// single value and is used for bar/line; a pie needs one colour per slice, so it falls back
+// to this list (the node's colour first, so a user who picked purple still gets purple-ish
+// leading slices).
 const SLICE_COLORS = [
   '#7c3aed', '#0ea5e9', '#16a34a', '#f59e0b', '#ef4444',
   '#14b8a6', '#ec4899', '#8b5cf6', '#84cc16', '#f97316',
 ]
 
-
+/**
+ * Decide whether a node can be charted, and with which columns.
+ * Returns { kind, xKey, yKey, title, color, error } — exactly one of `error` / a usable spec.
+ */
 export function getChartSpec(nodeType, config = {}, rows = []) {
   const kind = getChartKind(nodeType)
   if (!kind) return { error: 'This node is not a chart node.' }
@@ -32,7 +51,10 @@ export function getChartSpec(nodeType, config = {}, rows = []) {
     }
   }
 
-  
+  // Validate against the real data, not just the config: a column can be selected and then
+  // disappear upstream (e.g. group_by_aggregate renames score -> score_average), and the
+  // backend passes such a node through as a success. Without this check the chart renders an
+  // empty frame with no explanation.
   const available = Object.keys(rows[0] ?? {})
   if (rows.length > 0) {
     const missing = [xKey, yKey].filter((key) => !available.includes(key))
@@ -72,7 +94,11 @@ function toLabel(value) {
   return String(value)
 }
 
-
+/**
+ * Turn preview_data into plottable points: [{ x, y, label }].
+ * Rows whose Y can't be read as a number are kept with y = null so the table underneath stays
+ * complete; bar/line charts gap over them instead of plotting a fabricated 0.
+ */
 export function buildChartPoints(rows, xKey, yKey) {
   return (rows ?? []).map((row) => ({
     x: toLabel(row?.[xKey]),
@@ -81,7 +107,15 @@ export function buildChartPoints(rows, xKey, yKey) {
   }))
 }
 
-
+/**
+ * Collapse points that share an X label by summing their Y.
+ * A pie needs one slice per label; without this, a duplicated category (very common straight
+ * out of a raw CSV) produces several identically-named slices and an unreadable legend.
+ *
+ * Labels whose values are ALL unreadable are dropped rather than summed to zero: a slice
+ * labelled "Apr 0%" implies a measured zero, when in fact the column was blank and there is
+ * nothing to show. A genuine 0 is kept — only nulls are skipped.
+ */
 export function aggregateByLabel(points) {
   const totals = new Map()
   points.forEach((point) => {

@@ -1,3 +1,13 @@
+"""Plain-English error translation for exceptions raised during node execution.
+
+`to_plain_english`/`suggest_fix` are the small mapping module the plan calls for, keyed on
+exception type / pandas error signatures. `extract_row_indices` always returns None here —
+there's no general way to recover "which rows failed" from an arbitrary exception; the one
+node that needs row-level error reporting (convert_type) gets it through a different
+mechanism entirely: `NodePlugin.compute_row_errors()`, called by the executor only on a
+*successful* execution, not from this module's exception-handling path. See
+app/nodes/base.py and app/nodes/transform/convert_type.py.
+"""
 from typing import Optional
 
 import pandas as pd

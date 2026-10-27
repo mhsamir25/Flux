@@ -1,4 +1,6 @@
-
+// Not strictly binary — the backend uses TOGGLE for options like
+// ASC/DESC (sort's `direction`), each with its own `options` pair. Falls back to a generic
+// Off/On pair only if a TOGGLE field somehow has no options.
 export default function ToggleField({ field, value, onChange }) {
   const options = field.options?.length ? field.options : ['Off', 'On']
   return (
